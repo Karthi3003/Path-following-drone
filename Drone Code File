@@ -1,0 +1,142 @@
+### CoppeliaSim Lua Script for Path Following Drone
+
+This script will run inside **CoppeliaSim** and control the drone to follow a series of waypoints.
+
+---
+
+### **Lua Script:**
+
+```lua
+-- Drone Path Following Script in CoppeliaSim (V-REP)
+
+function sysCall_init()
+    -- Handle for the drone (Quadricopter)
+    drone=sim.getObjectHandle('Quadricopter_base')
+
+    -- Waypoints for the drone to follow (define in X, Y, Z coordinates)
+    waypoints = {
+        {0, 0, 2},
+        {1, 0, 2},
+        {1, 1, 2},
+        {0, 1, 2},
+        {0, 0, 2}
+    }
+    
+    -- PID Controller parameters
+    kp = 0.5   -- Proportional Gain
+    ki = 0.001 -- Integral Gain
+    kd = 0.1   -- Derivative Gain
+    
+    -- Initialize PID variables
+    previousError = {0, 0, 0}
+    integral = {0, 0, 0}
+
+    -- Target waypoint index
+    waypointIndex = 1
+end
+
+function sysCall_actuation()
+    -- Get current drone position
+    dronePosition = sim.getObjectPosition(drone, -1)
+    
+    -- Get current target waypoint
+    targetWaypoint = waypoints[waypointIndex]
+    
+    -- Calculate error (difference between current position and target position)
+    error = {targetWaypoint[1] - dronePosition[1], targetWaypoint[2] - dronePosition[2], targetWaypoint[3] - dronePosition[3]}
+    
+    -- PID controller for each axis (X, Y, Z)
+    controlSignal = {0, 0, 0}
+    for i=1,3 do
+        -- Proportional term
+        proportional = error[i]
+        
+        -- Integral term
+        integral[i] = integral[i] + error[i]
+        
+        -- Derivative term
+        derivative = error[i] - previousError[i]
+        
+        -- Calculate control signal for each axis
+        controlSignal[i] = kp * proportional + ki * integral[i] + kd * derivative
+        previousError[i] = error[i]
+    end
+
+    -- Apply the control signal to move the drone
+    sim.setObjectPosition(drone, -1, {
+        dronePosition[1] + controlSignal[1],
+        dronePosition[2] + controlSignal[2],
+        dronePosition[3] + controlSignal[3]
+    })
+
+    -- Check if the drone has reached the current waypoint (tolerance: 0.1m)
+    if math.abs(error[1]) < 0.1 and math.abs(error[2]) < 0.1 and math.abs(error[3]) < 0.1 then
+        -- Move to the next waypoint
+        waypointIndex = waypointIndex + 1
+        if waypointIndex > #waypoints then
+            waypointIndex = 1  -- Loop back to the first waypoint
+        end
+    end
+end
+```
+
+---
+
+### Explanation:
+
+1. **Drone Handle**: The script first gets a handle on the **Quadricopter** in the CoppeliaSim simulation environment using `sim.getObjectHandle('Quadricopter_base')`.
+
+2. **Waypoints**: A series of waypoints is defined in a table (`waypoints`), representing the path the drone must follow. The drone will attempt to move to each waypoint in sequence.
+
+3. **PID Controller**: A basic PID controller is implemented with proportional, integral, and derivative terms to control the movement of the drone along the X, Y, and Z axes.
+
+4. **Control Signal**: The PID control signals are applied to the drone’s position in each axis to move it toward the next waypoint.
+
+5. **Waypoint Navigation**: Once the drone reaches a waypoint (within a small tolerance of 0.1 meters), it moves to the next waypoint in the list. When the last waypoint is reached, the drone loops back to the first one.
+
+---
+
+
+
+## Features
+
+- Simulates a quadrotor following a series of waypoints in 3D space.
+- Uses a PID control system to maintain stability and accuracy.
+- Real-time simulation in CoppeliaSim with visual feedback of the drone’s path.
+- Automatically loops back to the first waypoint once all waypoints are reached.
+
+## Tech Stack
+
+- **Language**: Lua (for CoppeliaSim scripting)
+- **Software**: CoppeliaSim (V-REP)
+- **Control System**: PID Controller
+
+## Waypoints
+
+In this simulation, the drone follows a series of waypoints defined in 3D space as {X, Y, Z} coordinates. You can customize the waypoints in the script to define your own paths.
+
+## How to Run the Simulation
+
+1. **Install CoppeliaSim**: Download and install [CoppeliaSim](https://www.coppeliarobotics.com/).
+   
+2. **Quadrotor Model**: Use the built-in Quadricopter model in CoppeliaSim or import your own.
+
+3. **Add the Script**: Open CoppeliaSim and attach the provided Lua script to the drone (Quadricopter) object.
+
+4. **Run the Simulation**: Start the simulation in CoppeliaSim to see the drone follow the predefined waypoints.
+
+## PID Control
+
+The drone is controlled using a PID (Proportional-Integral-Derivative) controller to ensure it follows the path smoothly and accurately. You can fine-tune the PID parameters (Kp, Ki, Kd) in the script to achieve different flight dynamics.
+
+### Default PID Values:
+
+- Kp: 0.5 (Proportional Gain)
+- Ki: 0.001 (Integral Gain)
+- Kd: 0.1 (Derivative Gain)
+
+## Future Improvements
+
+- Implementing advanced path planning algorithms such as A* or RRT for dynamic path adjustment.
+- Adding obstacle detection and avoidance capabilities.
+- Improving the PID controller with adaptive control methods.
